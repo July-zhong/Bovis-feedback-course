@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基于心理安全的反馈技巧 - 课程知识图谱</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background-color: #f5f0e8;
+    color: #333;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(245, 240, 232, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e0d8cc;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #3C4F6D;
+    letter-spacing: 1px;
+  }
+  .header-instructor {
+    font-size: 13px;
+    color: #56642A;
+    margin-top: 3px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .header-instructor:hover {
+    color: #3C4F6D;
+    text-decoration: underline;
+  }
+  .corner-hint {
+    position: fixed;
+    bottom: 68px;
+    right: 20px;
+    z-index: 90;
+    font-size: 10px;
+    color: #999;
+    pointer-events: none;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #555;
+  }
+  .legend-dot {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-tag {
+    background: #56642A;
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 3px;
+  }
+
+  .controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ctrl-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid #d5d0c7;
+    background: #fff;
+    color: #4A686A;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover { background: #f0f4f4; transform: scale(1.05); }
+
+  #graph-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  .hint-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 11px;
+    color: #888;
+    border: 1px solid #e8e3db;
+    pointer-events: none;
+  }
+
+  .tooltip {
+    position: fixed;
+    background: rgba(50,55,60,0.9);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 150;
+    opacity: 0;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .tooltip.active { opacity: 1; }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.active { display: flex; opacity: 1; }
+  .modal-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.18);
+    max-height: 82vh;
+    overflow-y: auto;
+    position: relative;
+    animation: modalIn 0.3s ease-out;
+  }
+  @keyframes modalIn {
+    from { transform: translateY(16px) scale(0.96); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.4); }
+
+  /* Level 1 */
+  .card-level1 { width: 600px; max-width: 90vw; }
+  .card-level1 .card-header {
+    background: #3C4F6D;
+    color: #fff;
+    padding: 22px 28px;
+    border-radius: 14px 14px 0 0;
+  }
+  .card-level1 .card-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .card-level1 .duration-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 3px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+  .card-level1 .card-body {
+    padding: 22px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .card-section h3 {
+    font-size: 12px;
+    color: #56642A;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .card-section p, .card-section li { font-size: 12px; line-height: 1.7; color: #555; }
+  .card-section ul { padding-left: 16px; }
+  .card-section li { margin-bottom: 4px; }
+  .intro-text {
+    grid-column: 1 / -1;
+    background: #f5f7f7;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #555;
+  }
+
+  /* Level 2 */
+  .card-level2 { width: 440px; max-width: 90vw; }
+  .card-level2 .card-header {
+    padding: 20px 24px;
+    border-radius: 14px 14px 0 0;
+    color: #fff;
+  }
+  .card-level2 .card-header.green { background: #56642A; }
+  .card-level2 .card-header.gray  { background: #4A686A; }
+  .card-level2 .card-header h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+  .card-level2 .halfday-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    margin-right: 6px;
+  }
+  .card-level2 .solo-badge {
+    display: inline-block;
+    background: #fff;
+    color: #56642A;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .card-level2 .card-body { padding: 20px 24px; }
+  .card-level2 .objective {
+    background: #f5f7f7;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #555;
+    margin-bottom: 14px;
+  }
+  .knowledge-preview { margin-top: 12px; }
+  .knowledge-preview h4 { font-size: 12px; color: #56642A; margin-bottom: 6px; font-weight: 700; }
+  .knowledge-preview .kp-item {
+    display: flex; align-items: flex-start; gap: 6px;
+    padding: 5px 0;
+    border-bottom: 1px solid #e8ecec;
+    font-size: 11px;
+    color: #555;
+  }
+  .knowledge-preview .kp-item:last-child { border-bottom: none; }
+  .kp-dot { width: 5px; height: 5px; border-radius: 50%; background: #FDB137; margin-top: 6px; flex-shrink: 0; }
+  .solo-highlight {
+    background: #f0f4ec;
+    border-left: 3px solid #56642A;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    margin-top: 12px;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  /* Level 3 */
+  .card-level3 { width: 380px; max-width: 90vw; }
+  .card-level3 .card-header {
+    background: #FDB137;
+    color: #fff;
+    padding: 16px 22px;
+    border-radius: 14px 14px 0 0;
+  }
+  .card-level3 .card-header h2 { font-size: 14px; font-weight: 700; line-height: 1.4; }
+  .card-level3 .parent-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.3);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    margin-top: 5px;
+    color: #fff;
+  }
+  .card-level3 .card-body { padding: 16px 22px; }
+  .card-level3 .card-body p { font-size: 12px; line-height: 1.8; color: #555; }
+
+  /* Instructor Card */
+  .card-instructor { width: 480px; max-width: 90vw; }
+  .card-instructor .card-header {
+    background: #3C4F6D;
+    color: #fff;
+    padding: 18px 24px;
+    border-radius: 14px 14px 0 0;
+  }
+  .card-instructor .card-header h2 { font-size: 16px; font-weight: 700; }
+  .card-instructor .instructor-body {
+    display: flex;
+    padding: 0;
+  }
+  .card-instructor .instructor-left {
+    width: 130px;
+    background: #f5f7f7;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    border-right: 1px solid #e8ecec;
+    flex-shrink: 0;
+  }
+  .card-instructor .instructor-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .card-instructor .instructor-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 15%;
+    display: block;
+  }
+  .card-instructor .instructor-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+  }
+  .card-instructor .instructor-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+  .card-instructor .instructor-tag {
+    font-size: 10px;
+    background: #fff;
+    color: #4A686A;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid #d5d0c7;
+    white-space: nowrap;
+  }
+  .card-instructor .instructor-right {
+    flex: 1;
+    padding: 20px 24px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .card-instructor .instructor-right p {
+    font-size: 12px;
+    line-height: 1.8;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .card-instructor .instructor-section {
+    margin-bottom: 12px;
+  }
+  .card-instructor .instructor-section:last-child { margin-bottom: 0; }
+  .card-instructor .instructor-section h4 {
+    font-size: 11px;
+    color: #56642A;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .card-instructor .instructor-section p {
+    font-size: 11px;
+    line-height: 1.7;
+    color: #666;
+    margin-bottom: 0;
+  }
+
+  .modal-card::-webkit-scrollbar { width: 5px; }
+  .modal-card::-webkit-scrollbar-track { background: transparent; }
+  .modal-card::-webkit-scrollbar-thumb { background: #c5cdcd; border-radius: 3px; }
+
+  @media (max-width: 800px) {
+    .card-instructor .instructor-body { flex-direction: column; }
+    .card-instructor .instructor-left { width: 100%; border-right: none; border-bottom: 1px solid #e8ecec; }
+    .card-instructor .instructor-right { max-height: 260px; }
+    .header { padding: 10px 14px; flex-direction: column; align-items: flex-start; gap: 6px; }
+    .legend { flex-wrap: wrap; gap: 10px; }
+    .card-level1 .card-body { grid-template-columns: 1fr; }
+    .card-level1, .card-level2, .card-level3 { max-width: 95vw; width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">基于心理安全的反馈技巧</div>
+    <div class="header-instructor" onclick="openInstructorModal()">康杰老师</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#3C4F6D;"></div>
+      <span>完整课程</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#56642A;"></div>
+      <span>模块 <span class="legend-tag">0.5天</span></span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#4A686A;"></div>
+      <span>模块</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#FDB137;"></div>
+      <span>知识点</span>
+    </div>
+  </div>
+</div>
+
+<canvas id="graph-canvas"></canvas>
+
+<div class="hint-bar">滚轮缩放 · 点击节点查看详情</div>
+
+<div class="corner-hint">互动式课程知识图谱</div>
+
+<div class="controls">
+  <button class="ctrl-btn" onclick="resetView()" title="重置视图">⌖</button>
+  <button class="ctrl-btn" onclick="zoomIn()" title="放大">+</button>
+  <button class="ctrl-btn" onclick="zoomOut()" title="缩小">−</button>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-card" id="modal-card" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+// ===================== COLORS =====================
+const C_COURSE = '#3C4F6D';
+const C_SOLO   = '#56642A';
+const C_NOSOLO = '#4A686A';
+const C_KNOW   = '#FDB137';
+const C_BG     = '#E2EAEA';
+
+// ===================== DATA =====================
+const nodes = [
+  {
+    id: 'course', level: 1, label: '基于心理安全的\n反馈技巧',
+    radius: 0, color: C_COURSE, fixed: true,
+    data: {
+      title: '基于心理安全的反馈技巧',
+      duration: '1天（6小时）',
+      intro: '当生成式AI重塑工作场景，传统反馈模式极易触发员工的防御心理。本课程聚焦AI时代心理安全痛点，帮助管理者以反馈为纽带，构建人机协同下的信任型团队氛围。',
+      purposes: [
+        '识别反馈中威胁心理安全的隐形雷区',
+        '掌握基于"自我决定理论"的反馈框架',
+        '习得AI相关场景的个性化反馈技巧',
+        '提升反馈中的情绪感知与调节能力'
+      ],
+      benefits: [
+        '理解AI对员工心理需求的影响机制',
+        '精准识别并规避常见反馈误区',
+        '习得"AI适配型"反馈实战工具',
+        '打造信任包容的团队文化',
+        '提升团队在技术变革中的适应力'
+      ],
+      audience: '企业中基层管理者、HR从业者、需指导员工应对AI变革的业务骨干。'
+    }
+  },
+  {
+    id: 'm1', level: 2, label: '01 AI时代的\n心理安全与\n反馈挑战',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块一：AI时代的心理安全与反馈新挑战',
+      duration: '0.5天',
+      objective: '建立对AI时代反馈逻辑的系统认知，理解员工心理图景的变化与反馈失效的根本原因。',
+      highlights: [
+        '把握员工心理安全的三大核心维度',
+        '识别传统反馈在AI场景下的失效原因',
+        '建立心理安全型反馈的系统框架'
+      ],
+      children: ['AI重塑下的员工心理图景', '心理安全缺失的反馈困境', '心理安全型反馈的三大支柱']
+    }
+  },
+  {
+    id: 'm2', level: 2, label: '02 反馈中构建\n心理安全的\n核心原则',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块二：反馈中构建心理安全的核心原则',
+      duration: '0.5天',
+      objective: '掌握守护心理安全的反馈底层方法论，建立尊重为先、需求导向、人机协同的反馈原则。',
+      highlights: [
+        '建立以尊重为基础的反馈沟通原则',
+        '紧扣员工三大心理需求进行反馈设计',
+        '将AI定位为协作工具而非评判标准'
+      ],
+      children: ['尊重为先', '需求导向', '人机协同']
+    }
+  },
+  {
+    id: 'm3', level: 2, label: '03 分场景的\n心理安全\n反馈方法',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块三：分场景的心理安全反馈方法',
+      duration: '0.5天',
+      objective: '习得不同AI相关场景的反馈实战工具，覆盖技能迭代、人机协作、绩效评估、创新试错四大场景。',
+      highlights: [
+        '掌握四大场景下的差异化反馈策略',
+        '学会设计"肯定价值+明确路径"的话术',
+        '获得可直接落地的反馈沟通工具'
+      ],
+      children: ['技能迭代场景', '人机协作场景', '绩效评估场景', '创新试错场景']
+    }
+  },
+  {
+    id: 'm4', level: 2, label: '04 反馈中的\n情绪管理与\n氛围营造',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块四：反馈中的情绪管理与氛围营造',
+      duration: '0.5天',
+      objective: '提升反馈中的心理支持能力，学会情绪识别、安全破冰与能量赋能三大关键技能。',
+      highlights: [
+        '精准识别AI焦虑引发的防御信号',
+        '掌握"第三个故事"安全破冰技巧',
+        '学会在反馈中注入肯定性信息'
+      ],
+      children: ['情绪识别', '安全破冰', '能量赋能']
+    }
+  },
+  {
+    id: 'm5', level: 2, label: '05 反馈体系的\n长效优化',
+    radius: 0, color: C_NOSOLO, solo: false,
+    data: {
+      title: '模块五：反馈体系的长效优化',
+      duration: null,
+      objective: '规划反馈能力的持续提升路径，整合所学内容并制定个人行动方案。',
+      highlights: [
+        '系统梳理课程核心框架与知识脉络',
+        '制定个人专属的反馈优化行动计划',
+        '获得可长期使用的反馈工具包'
+      ],
+      children: ['知识整合', '行动规划', '工具包运用']
+    }
+  },
+  {
+    id: 'm1-k1', level: 3, parent: 'm1', label: '员工\n心理图景',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: 'AI重塑下的员工心理图景',
+      parent: '模块一：认知基石',
+      desc: '基于自我决定理论，解析AI时代员工三大核心心理需求的变化：胜任感、自主性、归属感。理解技术变革如何动摇这些基础需求，是设计安全型反馈的前提。'
+    }
+  },
+  {
+    id: 'm1-k2', level: 3, parent: 'm1', label: '反馈\n困境',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '心理安全缺失的反馈困境',
+      parent: '模块一：认知基石',
+      desc: '通过真实案例拆解"技能替代焦虑""人机协作困惑"等场景中的反馈失效问题，分析传统反馈为何在AI时代更容易触发防御心理。'
+    }
+  },
+  {
+    id: 'm1-k3', level: 3, parent: 'm1', label: '三大\n支柱',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '心理安全型反馈的三大支柱',
+      parent: '模块一：认知基石',
+      desc: '建立系统化反馈框架：安全氛围（信任基础）、精准表达（事实与情绪平衡）、赋能行动（成长导向）。'
+    }
+  },
+  {
+    id: 'm2-k1', level: 3, parent: 'm2', label: '尊重\n为先',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '尊重为先',
+      parent: '模块二：底层逻辑',
+      desc: '避免"技术至上"的评判倾向，在反馈中维护员工的职业身份认同，强调经验与创造力在AI时代依然不可替代。'
+    }
+  },
+  {
+    id: 'm2-k2', level: 3, parent: 'm2', label: '需求\n导向',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '需求导向',
+      parent: '模块二：底层逻辑',
+      desc: '紧扣三大心理需求设计反馈：强化胜任感、保留自主性、强化归属感，让每个反馈动作都锚定员工的真实需求。'
+    }
+  },
+  {
+    id: 'm2-k3', level: 3, parent: 'm2', label: '人机\n协同',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '人机协同',
+      parent: '模块二：底层逻辑',
+      desc: '将AI定位为"协作工具"而非"评判标准"。反馈的目标不是让员工与AI竞争，而是帮助员工找到与AI协作的最佳方式。'
+    }
+  },
+  {
+    id: 'm3-k1', level: 3, parent: 'm3', label: '技能\n迭代场景',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '技能迭代场景',
+      parent: '模块三：实战技巧',
+      desc: '应对"AI替代焦虑"的反馈技巧。核心话术：肯定现有价值 + 明确成长路径，将焦虑转化为学习动力。'
+    }
+  },
+  {
+    id: 'm3-k2', level: 3, parent: 'm3', label: '人机\n协作场景',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '人机协作场景',
+      parent: '模块三：实战技巧',
+      desc: '指导"AI使用困惑"的反馈方法。策略：赋能自主探索 + 提供支持边界，在支持中保留员工的探索空间。'
+    }
+  },
+  {
+    id: 'm3-k3', level: 3, parent: 'm3', label: '绩效\n评估场景',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '绩效评估场景',
+      parent: '模块三：实战技巧',
+      desc: '结合"AI辅助评价"的反馈逻辑。平衡数据客观与人文关怀，强调数据是参考而非判决书。'
+    }
+  },
+  {
+    id: 'm3-k4', level: 3, parent: 'm3', label: '创新\n试错场景',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '创新试错场景',
+      parent: '模块三：实战技巧',
+      desc: '包容"AI应用失误"的反馈艺术。弱化否定指责，聚焦问题解决，将失误转化为学习机会。'
+    }
+  },
+  {
+    id: 'm4-k1', level: 3, parent: 'm4', label: '情绪\n识别',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '情绪识别',
+      parent: '模块四：能力强化',
+      desc: '捕捉AI焦虑引发的防御信号（沉默、反驳、回避），识别信号背后的心理需求并调整反馈策略。'
+    }
+  },
+  {
+    id: 'm4-k2', level: 3, parent: 'm4', label: '安全\n破冰',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '安全破冰',
+      parent: '模块四：能力强化',
+      desc: '从"第三个故事"切入消除心理戒备。站在中立视角描述客观事实，降低对方的防御心理。'
+    }
+  },
+  {
+    id: 'm4-k3', level: 3, parent: 'm4', label: '能量\n赋能',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '能量赋能',
+      parent: '模块四：能力强化',
+      desc: '在反馈中注入肯定性信息，强化员工心理韧性。方法：3:1积极比例、成长型语言、未来导向。'
+    }
+  },
+  {
+    id: 'm5-k1', level: 3, parent: 'm5', label: '知识\n整合',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '知识整合',
+      parent: '模块五：整合落地',
+      desc: '梳理"认知-原则-技巧-氛围"的完整反馈能力提升框架，建立从认知到行动的逻辑链条。'
+    }
+  },
+  {
+    id: 'm5-k2', level: 3, parent: 'm5', label: '行动\n规划',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '行动规划',
+      parent: '模块五：整合落地',
+      desc: '制定个人"反馈优化清单"，明确实践目标与步骤，确保所学内容真正落地。'
+    }
+  },
+  {
+    id: 'm5-k3', level: 3, parent: 'm5', label: '工具包\n运用',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '工具包运用',
+      parent: '模块五：整合落地',
+      desc: '解决个性化场景难题，带走实用工具：心理需求评估表、反馈话术模板、场景对照清单。'
+    }
+  }
+];
+
+const links = [
+  { source: 'course', target: 'm1' },
+  { source: 'course', target: 'm2' },
+  { source: 'course', target: 'm3' },
+  { source: 'course', target: 'm4' },
+  { source: 'course', target: 'm5' },
+  { source: 'm1', target: 'm1-k1' },
+  { source: 'm1', target: 'm1-k2' },
+  { source: 'm1', target: 'm1-k3' },
+  { source: 'm2', target: 'm2-k1' },
+  { source: 'm2', target: 'm2-k2' },
+  { source: 'm2', target: 'm2-k3' },
+  { source: 'm3', target: 'm3-k1' },
+  { source: 'm3', target: 'm3-k2' },
+  { source: 'm3', target: 'm3-k3' },
+  { source: 'm3', target: 'm3-k4' },
+  { source: 'm4', target: 'm4-k1' },
+  { source: 'm4', target: 'm4-k2' },
+  { source: 'm4', target: 'm4-k3' },
+  { source: 'm5', target: 'm5-k1' },
+  { source: 'm5', target: 'm5-k2' },
+  { source: 'm5', target: 'm5-k3' }
+];
+
+// ===================== LAYOUT =====================
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+let transform = { x: 0, y: 0, k: 1 };
+let hoveredNode = null;
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let dragStartTransform = { x: 0, y: 0 };
+let hasDragged = false;
+
+function resize() {
+  width = window.innerWidth;
+  height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+}
+
+function initPositions() {
+  const cx = width / 2;
+  const cy = height / 2 + 20;
+
+  // Level 1
+  const course = nodes.find(n => n.id === 'course');
+  course.radius = Math.min(56, width * 0.048);
+  course.x = cx;
+  course.y = cy;
+
+  // Level 2
+  const mNodes = nodes.filter(n => n.level === 2);
+  const mRadius = Math.min(46, width * 0.04);
+  mNodes.forEach(n => n.radius = mRadius);
+
+  const minGap = 40;
+  const minR2 = (2 * mRadius + minGap) / (2 * Math.sin(Math.PI / 5));
+  const preferredR2 = Math.min(width, height) * 0.19;
+  const r2 = Math.max(minR2, Math.min(preferredR2, 220));
+
+  mNodes.forEach((n, i) => {
+    const angle = (i / mNodes.length) * Math.PI * 2 - Math.PI / 2;
+    n.x = cx + Math.cos(angle) * r2;
+    n.y = cy + Math.sin(angle) * r2;
+  });
+
+  // Level 3
+  const kRadius = Math.min(26, width * 0.022);
+  nodes.filter(n => n.level === 3).forEach(n => n.radius = kRadius);
+
+  nodes.filter(n => n.level === 3).forEach(n => {
+    const parent = nodes.find(p => p.id === n.parent);
+    const siblings = nodes.filter(s => s.parent === n.parent);
+    const count = siblings.length;
+    const idx = siblings.indexOf(n);
+
+    // Parent angle from L1 center
+    const parentAngle = Math.atan2(parent.y - cy, parent.x - cx);
+
+    // Spread angle based on count
+    const spreadDeg = count === 4 ? 100 : count === 3 ? 72 : 60;
+    const spread = Math.PI * spreadDeg / 180;
+
+    // Minimum radius to avoid sibling overlap, based on actual angular step inside spread
+    const kMinGap = 18;
+    let minR3;
+    if (count <= 1) {
+      minR3 = 90;
+    } else {
+      const halfStep = spread / (2 * (count - 1));
+      minR3 = (2 * kRadius + kMinGap) / (2 * Math.sin(halfStep));
+    }
+    const preferredR3 = Math.min(width, height) * 0.14;
+    const r3 = Math.max(minR3, Math.min(preferredR3, 150));
+
+    const startAngle = parentAngle - spread / 2;
+    const angle = startAngle + (count > 1 ? (idx / (count - 1)) * spread : 0);
+    n.x = parent.x + Math.cos(angle) * r3;
+    n.y = parent.y + Math.sin(angle) * r3;
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, width, height);
+  ctx.save();
+  ctx.translate(transform.x, transform.y);
+  ctx.scale(transform.k, transform.k);
+
+  // Links
+  links.forEach(l => {
+    const a = nodes.find(n => n.id === l.source);
+    const b = nodes.find(n => n.id === l.target);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.setLineDash([5, 6]);
+    ctx.strokeStyle = 'rgba(160, 160, 160, 0.5)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Nodes: draw level 3 first, then 2, then 1 (level 1 on top)
+  [3, 2, 1].forEach(level => {
+    nodes.filter(n => n.level === level).forEach(n => {
+    // Hover ring — single layer, light tech feel
+    if (n === hoveredNode) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius + 10, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(200, 210, 225, 0.65)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Shadow
+    ctx.beginPath();
+    ctx.arc(n.x, n.y + 3, n.radius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.fill();
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+    ctx.fillStyle = n.color;
+    ctx.fill();
+
+    // White border
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = n === hoveredNode ? 2.5 : 1.8;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const fontSize = n.level === 1 ? 14 : (n.level === 2 ? 11 : 10);
+    ctx.font = (n === hoveredNode ? 'bold ' : '') + fontSize + 'px "Microsoft YaHei", sans-serif';
+    const lines = n.label.split('\n');
+    const lineHeight = fontSize + 2;
+    const startY = n.y - (lines.length - 1) * lineHeight / 2;
+    lines.forEach((line, i) => {
+      ctx.fillText(line, n.x, startY + i * lineHeight);
+    });
+
+    // Solo badge for level 2
+    if (n.level === 2 && n.solo) {
+      const bx = n.x + n.radius * 0.68;
+      const by = n.y - n.radius * 0.68;
+      ctx.beginPath();
+      ctx.arc(bx, by, 11, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(bx, by, 11, 0, Math.PI * 2);
+      ctx.strokeStyle = n.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = n.color;
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('0.5', bx, by + 1);
+    }
+  });
+  });
+
+  ctx.restore();
+}
+
+// ===================== INTERACTION =====================
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left - transform.x) / transform.k,
+    y: (e.clientY - rect.top - transform.y) / transform.k
+  };
+}
+
+function findNode(pos) {
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const dx = pos.x - n.x, dy = pos.y - n.y;
+    if (dx * dx + dy * dy <= n.radius * n.radius) return n;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+  isDragging = true;
+  hasDragged = false;
+  dragStart.x = e.clientX;
+  dragStart.y = e.clientY;
+  dragStartTransform.x = transform.x;
+  dragStartTransform.y = transform.y;
+});
+
+canvas.addEventListener('mousemove', e => {
+  // Drag pan
+  if (isDragging) {
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      hasDragged = true;
+      transform.x = dragStartTransform.x + dx;
+      transform.y = dragStartTransform.y + dy;
+      canvas.style.cursor = 'grabbing';
+      draw();
+      return;
+    }
+  }
+
+  const pos = getMousePos(e);
+  const node = findNode(pos);
+  hoveredNode = node;
+  canvas.style.cursor = isDragging ? 'grabbing' : (node ? 'pointer' : 'default');
+
+  const tooltip = document.getElementById('tooltip');
+  if (node) {
+    tooltip.textContent = node.level === 1 ? '点击查看完整课程详情' :
+      node.level === 2 ? (node.solo ? '点击查看模块详情 · 可单独开设0.5天' : '点击查看模块详情') :
+      '点击查看知识点详情';
+    tooltip.style.left = (e.clientX + 10) + 'px';
+    tooltip.style.top = (e.clientY - 28) + 'px';
+    tooltip.classList.add('active');
+  } else {
+    tooltip.classList.remove('active');
+  }
+  draw();
+});
+
+canvas.addEventListener('mouseup', e => {
+  isDragging = false;
+  canvas.style.cursor = 'default';
+  // If it was a small movement without dragging, treat as click
+  if (!hasDragged) {
+    const pos = getMousePos(e);
+    const node = findNode(pos);
+    if (node) openModal(node);
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const zoomFactor = e.deltaY > 0 ? 0.92 : 1.08;
+  const newK = Math.max(0.3, Math.min(3, transform.k * zoomFactor));
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  transform.x = mx - (mx - transform.x) * (newK / transform.k);
+  transform.y = my - (my - transform.y) * (newK / transform.k);
+  transform.k = newK;
+  draw();
+}, { passive: false });
+
+// Touch
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    const pos = getMousePos(t);
+    const node = findNode(pos);
+    if (node) openModal(node);
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx*dx + dy*dy);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 2 && lastTouchDist > 0) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const zoomFactor = dist / lastTouchDist;
+    const newK = Math.max(0.3, Math.min(3, transform.k * zoomFactor));
+    const cx = width / 2, cy = height / 2;
+    transform.x = cx - (cx - transform.x) * (newK / transform.k);
+    transform.y = cy - (cy - transform.y) * (newK / transform.k);
+    transform.k = newK;
+    lastTouchDist = dist;
+    draw();
+  }
+}, { passive: false });
+
+// ===================== MODAL =====================
+function openModal(node) {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  const card = document.getElementById('modal-card');
+
+  let html = '';
+  if (node.level === 1) {
+    const d = node.data;
+    card.className = 'modal-card card-level1';
+    html = `
+      <div class="card-header">
+        <h2>${d.title}</h2>
+        <span class="duration-tag">${d.duration}</span>
+      </div>
+      <div class="card-body">
+        <div class="intro-text">${d.intro}</div>
+        <div class="card-section">
+          <h3>课程目的</h3>
+          <ul>${d.purposes.map(p => `<li>${p}</li>`).join('')}</ul>
+        </div>
+        <div class="card-section">
+          <h3>学员收益</h3>
+          <ul>${d.benefits.map(b => `<li>${b}</li>`).join('')}</ul>
+        </div>
+        <div class="card-section" style="grid-column:1/-1;">
+          <h3>适合人群</h3>
+          <p>${d.audience}</p>
+        </div>
+      </div>
+    `;
+  } else if (node.level === 2) {
+    const d = node.data;
+    const headerClass = node.solo ? 'green' : 'gray';
+    card.className = 'modal-card card-level2';
+    html = `
+      <div class="card-header ${headerClass}">
+        <h2>${d.title}</h2>
+        ${node.solo ? `<span class="halfday-tag">0.5天</span><span class="solo-badge">可单独开设</span>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="objective"><strong>核心目标：</strong>${d.objective}</div>
+        <div class="card-section">
+          <h3>模块亮点</h3>
+          <ul>${d.highlights.map(h => `<li>${h}</li>`).join('')}</ul>
+        </div>
+        <div class="knowledge-preview">
+          <h4>涵盖知识点</h4>
+          ${d.children.map(c => `<div class="kp-item"><div class="kp-dot"></div><span>${c}</span></div>`).join('')}
+        </div>
+        ${node.solo ? `<div class="solo-highlight">此模块可独立开设为半日工作坊，内容完整、工具可立即落地。</div>` : ''}
+      </div>
+    `;
+  } else {
+    const d = node.data;
+    card.className = 'modal-card card-level3';
+    html = `
+      <div class="card-header">
+        <h2>${d.title}</h2>
+        <span class="parent-tag">${d.parent}</span>
+      </div>
+      <div class="card-body">
+        <p>${d.desc}</p>
+      </div>
+    `;
+  }
+
+  content.innerHTML = html;
+  overlay.classList.add('active');
+}
+
+function openInstructorModal() {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  const card = document.getElementById('modal-card');
+  card.className = 'modal-card card-instructor';
+  content.innerHTML = `
+    <div class="card-header">
+      <h2>讲师简介</h2>
+    </div>
+    <div class="instructor-body">
+      <div class="instructor-left">
+        <div class="instructor-avatar"><img src="instructor2.jpg" alt="康杰老师"></div>
+        <div class="instructor-name">康杰老师</div>
+        <div class="instructor-tags">
+          <span class="instructor-tag">CMF专家级引导师</span>
+          <span class="instructor-tag">团队教练</span>
+        </div>
+      </div>
+      <div class="instructor-right">
+        <p>Arry Kang，INIFAC国际引导学院认证专家级引导师（CMF）、团队教练/行动学习教练、变革管理与绩效改进咨询顾问。</p>
+        <div class="instructor-section">
+          <h4>专业背景</h4>
+          <p>工科背景的女性领导者，二十年业务管理与咨询顾问经验。职业生涯始于新闻行业，多年职业记者经历锻炼出缜密的系统思考及逻辑思维能力。曾担任媒体集团销售VP、广告公司CEO，带领团队服务过足球世界杯、奥运会、F1等重大赛事。</p>
+        </div>
+        <div class="instructor-section">
+          <h4>核心优势</h4>
+          <p>深刻理解不同行业客户需求，擅长将引导技术与业务场景深度融合，围绕真实业务情境量身定制解决方案，平衡"人"与"事"的关系，推动战略落地和组织发展。</p>
+        </div>
+        <div class="instructor-section">
+          <h4>服务领域</h4>
+          <p>汽车、快消、零售、制造、医药、互联网、奢侈品、金融等行业；专注战略规划与落地、价值观解码、愿景共创、销售团队激励、组织变革等议题。</p>
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.classList.add('active');
+}
+
+function closeModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+// ===================== CONTROLS =====================
+function resetView() {
+  transform = { x: 0, y: 0, k: 1 };
+  initPositions();
+  draw();
+}
+
+function zoomIn() {
+  const newK = Math.min(3, transform.k * 1.2);
+  const cx = width / 2, cy = height / 2;
+  transform.x = cx - (cx - transform.x) * (newK / transform.k);
+  transform.y = cy - (cy - transform.y) * (newK / transform.k);
+  transform.k = newK;
+  draw();
+}
+
+function zoomOut() {
+  const newK = Math.max(0.3, transform.k / 1.2);
+  const cx = width / 2, cy = height / 2;
+  transform.x = cx - (cx - transform.x) * (newK / transform.k);
+  transform.y = cy - (cy - transform.y) * (newK / transform.k);
+  transform.k = newK;
+  draw();
+}
+
+// ===================== INIT =====================
+window.addEventListener('resize', () => {
+  resize();
+  initPositions();
+  draw();
+});
+resize();
+initPositions();
+draw();
+</script>
+</body>
+</html>
