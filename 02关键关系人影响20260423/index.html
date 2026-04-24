@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关键关系人影响 - 课程知识图谱</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background-color: #f5f0e8;
+    color: #333;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .course-logo {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 80;
+    height: 36px;
+    width: auto;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+
+  .header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(245, 240, 232, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e0d8cc;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #3C4F6D;
+    letter-spacing: 1px;
+  }
+  .header-instructor {
+    font-size: 13px;
+    color: #56642A;
+    margin-top: 3px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .header-instructor:hover {
+    color: #3C4F6D;
+    text-decoration: underline;
+  }
+  .corner-hint {
+    position: fixed;
+    bottom: 68px;
+    right: 20px;
+    z-index: 90;
+    font-size: 10px;
+    color: #999;
+    pointer-events: none;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #555;
+  }
+  .legend-dot {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-tag {
+    background: #56642A;
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 3px;
+  }
+
+  .controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ctrl-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid #d5d0c7;
+    background: #fff;
+    color: #4A686A;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover { background: #f0f4f4; transform: scale(1.05); }
+
+  #graph-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  .hint-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 11px;
+    color: #888;
+    border: 1px solid #e8e3db;
+    pointer-events: none;
+  }
+
+  .tooltip {
+    position: fixed;
+    background: rgba(50,55,60,0.9);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 150;
+    opacity: 0;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .tooltip.active { opacity: 1; }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.active { display: flex; opacity: 1; }
+  .modal-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.18);
+    max-height: 82vh;
+    overflow-y: auto;
+    position: relative;
+    animation: modalIn 0.3s ease-out;
+  }
+  @keyframes modalIn {
+    from { transform: translateY(16px) scale(0.96); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.4); }
+
+  .card-level1 { width: 600px; max-width: 90vw; }
+  .card-level1 .card-header {
+    background: #3C4F6D;
+    color: #fff;
+    padding: 22px 28px;
+    border-radius: 14px 14px 0 0;
+  }
+  .card-level1 .card-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .card-level1 .duration-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 3px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+  .card-level1 .card-body {
+    padding: 22px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .card-section h3 {
+    font-size: 12px;
+    color: #56642A;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .card-section p, .card-section li { font-size: 12px; line-height: 1.7; color: #555; }
+  .card-section ul { padding-left: 16px; }
+  .card-section li { margin-bottom: 4px; }
+  .intro-text {
+    grid-column: 1 / -1;
+    background: #f5f7f7;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #555;
+  }
+
+  .card-level2 { width: 440px; max-width: 90vw; }
+  .card-level2 .card-header {
+    padding: 20px 24px;
+    border-radius: 14px 14px 0 0;
+    color: #fff;
+  }
+  .card-level2 .card-header.green { background: #56642A; }
+  .card-level2 .card-header.gray  { background: #4A686A; }
+  .card-level2 .card-header h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+  .card-level2 .halfday-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    margin-right: 6px;
+  }
+  .card-level2 .solo-badge {
+    display: inline-block;
+    background: #fff;
+    color: #56642A;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .card-level2 .card-body { padding: 20px 24px; }
+  .card-level2 .objective {
+    background: #f5f7f7;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #555;
+    margin-bottom: 14px;
+  }
+  .knowledge-preview { margin-top: 12px; }
+  .knowledge-preview h4 { font-size: 12px; color: #56642A; margin-bottom: 6px; font-weight: 700; }
+  .knowledge-preview .kp-item {
+    display: flex; align-items: flex-start; gap: 6px;
+    padding: 5px 0;
+    border-bottom: 1px solid #e8ecec;
+    font-size: 11px;
+    color: #555;
+  }
+  .knowledge-preview .kp-item:last-child { border-bottom: none; }
+  .kp-dot { width: 5px; height: 5px; border-radius: 50%; background: #FDB137; margin-top: 6px; flex-shrink: 0; }
+  .solo-highlight {
+    background: #f0f4ec;
+    border-left: 3px solid #56642A;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    margin-top: 12px;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  .card-level3 { width: 380px; max-width: 90vw; }
+  .card-level3 .card-header {
+    background: #FDB137;
+    color: #fff;
+    padding: 16px 22px;
+    border-radius: 14px 14px 0 0;
+  }
+  .card-level3 .card-header h2 { font-size: 14px; font-weight: 700; line-height: 1.4; }
+  .card-level3 .parent-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.3);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    margin-top: 5px;
+    color: #fff;
+  }
+  .card-level3 .card-body { padding: 16px 22px; }
+  .card-level3 .card-body p { font-size: 12px; line-height: 1.8; color: #555; }
+
+  .card-instructor { width: 480px; max-width: 90vw; }
+  .card-instructor .card-header {
+    background: #3C4F6D;
+    color: #fff;
+    padding: 18px 24px;
+    border-radius: 14px 14px 0 0;
+  }
+  .card-instructor .card-header h2 { font-size: 16px; font-weight: 700; }
+  .card-instructor .instructor-body {
+    display: flex;
+    padding: 0;
+  }
+  .card-instructor .instructor-left {
+    width: 150px;
+    background: #f5f7f7;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    border-right: 1px solid #e8ecec;
+    flex-shrink: 0;
+  }
+  .card-instructor .instructor-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .card-instructor .instructor-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 15%;
+    display: block;
+  }
+  .card-instructor .instructor-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+  }
+  .card-instructor .instructor-en-name {
+    font-size: 11px;
+    color: #888;
+    margin-top: -6px;
+    margin-bottom: 2px;
+  }
+  .card-instructor .instructor-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+  .card-instructor .instructor-tag {
+    font-size: 10px;
+    background: #fff;
+    color: #4A686A;
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid #d5d0c7;
+    text-align: center;
+    line-height: 1.4;
+    width: 112px;
+  }
+  .card-instructor .instructor-right {
+    flex: 1;
+    padding: 20px 24px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .card-instructor .instructor-right p {
+    font-size: 12px;
+    line-height: 1.8;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .card-instructor .instructor-section {
+    margin-bottom: 12px;
+  }
+  .card-instructor .instructor-section:last-child { margin-bottom: 0; }
+  .card-instructor .instructor-section h4 {
+    font-size: 11px;
+    color: #56642A;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .card-instructor .instructor-section p {
+    font-size: 11px;
+    line-height: 1.7;
+    color: #666;
+    margin-bottom: 0;
+  }
+
+  .modal-card::-webkit-scrollbar { width: 5px; }
+  .modal-card::-webkit-scrollbar-track { background: transparent; }
+  .modal-card::-webkit-scrollbar-thumb { background: #c5cdcd; border-radius: 3px; }
+
+  @media (max-width: 800px) {
+    .card-instructor .instructor-body { flex-direction: column; }
+    .card-instructor .instructor-left { width: 100%; border-right: none; border-bottom: 1px solid #e8ecec; }
+    .card-instructor .instructor-right { max-height: 260px; }
+    .header { padding: 10px 14px; flex-direction: column; align-items: flex-start; gap: 6px; }
+    .legend { flex-wrap: wrap; gap: 10px; }
+    .card-level1 .card-body { grid-template-columns: 1fr; }
+    .card-level1, .card-level2, .card-level3 { max-width: 95vw; width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">关键关系人影响</div>
+    <div class="header-instructor" onclick="openInstructorModal()">康杰老师</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#3C4F6D;"></div>
+      <span>完整课程</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#56642A;"></div>
+      <span>模块 <span class="legend-tag">0.5天</span></span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#4A686A;"></div>
+      <span>模块</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#FDB137;"></div>
+      <span>知识点</span>
+    </div>
+  </div>
+</div>
+
+<canvas id="graph-canvas"></canvas>
+
+<div class="hint-bar">滚轮缩放 · 点击节点查看详情</div>
+
+<div class="corner-hint">互动式课程知识图谱</div>
+
+<img src="logo.png" class="course-logo" alt="公司logo">
+
+<div class="controls">
+  <button class="ctrl-btn" onclick="resetView()" title="重置视图">⌖</button>
+  <button class="ctrl-btn" onclick="zoomIn()" title="放大">+</button>
+  <button class="ctrl-btn" onclick="zoomOut()" title="缩小">−</button>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-card" id="modal-card" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+const C_COURSE = '#3C4F6D';
+const C_SOLO   = '#56642A';
+const C_NOSOLO = '#4A686A';
+const C_KNOW   = '#FDB137';
+
+const nodes = [
+  {
+    id: 'course', level: 1, label: '关键关系人\n影响',
+    radius: 0, color: C_COURSE, fixed: true,
+    data: {
+      title: '关键关系人影响',
+      duration: '2天（12小时）',
+      intro: '在日常协作中，冲突无处不在：预算争夺、资源分配、目标分歧、权力博弈。面对冲突，很多人要么陷入对抗式说服，要么选择讨好式妥协，结果既消耗了关系，也没有解决问题。本课程从冲突自我认知出发，到识别关键关系人，再到差异化影响与冲突化解，帮助学员建立一套从"看清自己"到"看懂他人"再到"搞定局面"的实战闭环。',
+      purposes: [
+        '精准识别内外部关键关系人，运用"权力-利益矩阵"与依存度评估，看清显性与隐性影响力',
+        '深度分析关系人需求与权力动态，区分冲突根源（利益、认知、权力失衡），实现从"被动应对"到"主动影响"',
+        '掌握冲突化解工具（TKI模式、原则性谈判）与影响力七大原则，在无职权场景下将反对者转化为支持者',
+        '落地输出个人专属的《关键关系人管理手册》，包含关系人地图、冲突应对策略与协作话术'
+      ],
+      benefits: [
+        '精准识别内外部关键关系人，运用权力-利益矩阵与依存度评估，看清显性与隐性影响力，避免资源错配',
+        '深度分析关系人需求与权力动态，区分冲突根源（利益、认知、权力失衡），实现从被动应对到主动影响',
+        '掌握冲突化解工具（TKI模式、原则性谈判）与影响力七大原则，在无职权场景下将反对者转化为支持者',
+        '落地输出个人专属的《关键关系人管理手册》，包含关系人地图、冲突应对策略与协作话术，学完即用',
+        '模块一含分组实战练习：基于真实工作场景完成关系人盘点与矩阵绘制',
+        '模块四含分组模拟演练：针对真实职场冲突场景设计并演练化解方案'
+      ],
+      audience: '企业中基层管理者、项目经理、需跨部门推动协作的业务骨干、HRBP'
+    }
+  },
+  {
+    id: 'm1', level: 2, label: '01 关键关系人\n识别与分析',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块一：关键关系人识别与分析',
+      duration: '0.5天',
+      objective: '建立关键关系人管理的系统认知，掌握识别内外部显隐性关系人的核心工具，完成权力-利益矩阵与依存度评估。',
+      highlights: [
+        '案例拆解：因忽视隐性关系人或误判权力位势导致项目失败的典型场景',
+        '工具落地：stakeholder mapping清单法 + 权力-利益四象限矩阵 + 依存度评估'
+      ],
+      children: ['关系人管理核心价值', 'stakeholder mapping清单法', '权力-利益四象限矩阵', '依存度评估']
+    }
+  },
+  {
+    id: 'm2', level: 2, label: '02 差异化\n影响策略',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块二：差异化影响策略',
+      duration: '0.5天',
+      objective: '掌握针对不同类型关系人的差异化沟通与影响策略，设计贴合权力位势的表达模板，输出个人专属管理手册。',
+      highlights: [
+        '四大类型关系人应对策略：高支持高重要（紧密协作）、高重要低支持（争取认同）等',
+        '权力动态适配：针对不同依存关系，设计"价值绑定""资源互补"等影响动作',
+        '现场产出《个人专属管理手册》：整合关系人地图、协作策略与话术，即学即用'
+      ],
+      children: ['四大类型关系人画像', '差异化沟通策略', '权力动态适配', '沟通话术设计']
+    }
+  },
+  {
+    id: 'm3', level: 2, label: '03 冲突认知与\n自我洞察',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块三：冲突认知与自我洞察',
+      duration: '0.5天',
+      objective: '理解冲突本质是"需求未被满足"，通过TKI冲突模式测评精准识别自身主导模式，建立科学应对基础。',
+      highlights: [
+        '冲突本质洞察：从利益与权力视角复盘跨部门冲突，化解冲突不等于消除矛盾，而是找到共赢点',
+        '科学测评：TKI冲突模式个人测评，识别竞争、协作、回避等主导模式及适配场景',
+        '策略匹配：资源冲突、目标分歧等不同冲突类型与TKI模式的对应关系'
+      ],
+      children: ['跨部门冲突案例复盘', 'TKI冲突模式测评', '冲突类型与策略匹配']
+    }
+  },
+  {
+    id: 'm4', level: 2, label: '04 冲突化解与\n影响力实战',
+    radius: 0, color: C_SOLO, solo: true,
+    data: {
+      title: '模块四：冲突化解与影响力实战',
+      duration: '0.5天',
+      objective: '运用原则性谈判四步法与影响力七大原则，在"预算争夺""日程冲突"等真实场景中设计化解方案。',
+      highlights: [
+        '原则性谈判：分开人与问题、聚焦利益、创造选项、坚持客观标准',
+        '影响力原则场景化落地：互惠（事先施惠）、权威、联盟等原则的话术设计'
+      ],
+      children: ['原则性谈判四步法', '影响力七大原则', '场景化话术设计']
+    }
+  },
+  {
+    id: 'm1-k1', level: 3, parent: 'm1', label: '关系人\n管理\n核心价值',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '关系人管理核心价值',
+      parent: '模块一：识别与分析',
+      desc: '影响关系人等于降低阻力加放大支持力，权力是基于依存的动态变量。通过案例拆解因忽视隐性关系人或误判权力位势导致项目失败的典型场景，建立关键关系人管理的系统认知。'
+    }
+  },
+  {
+    id: 'm1-k2', level: 3, parent: 'm1', label: 'stakeholder\nmapping',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: 'stakeholder mapping清单法',
+      parent: '模块一：识别与分析',
+      desc: '覆盖内外部、显性隐性关系人的系统盘点工具，帮助学员快速梳理项目或业务中的全部关键关系人，避免遗漏核心决策者或隐形影响者。'
+    }
+  },
+  {
+    id: 'm1-k3', level: 3, parent: 'm1', label: '权力-利益\n矩阵',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '权力-利益四象限矩阵',
+      parent: '模块一：识别与分析',
+      desc: '对关键关系人进行权力与利益二维评估，完成优先级排序，明确资源投放重点，看透隐性影响力背后的权力逻辑。'
+    }
+  },
+  {
+    id: 'm1-k4', level: 3, parent: 'm1', label: '依存度\n评估',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '依存度评估',
+      parent: '模块一：识别与分析',
+      desc: '量化分析关系人之间的依赖关系，理解依存度如何决定真实话语权，避开"职位高等于权力大"的认知误区。'
+    }
+  },
+  {
+    id: 'm2-k1', level: 3, parent: 'm2', label: '四大类型\n关系人',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '四大类型关系人画像',
+      parent: '模块二：影响策略',
+      desc: '识别高支持高重要、高支持低重要、低支持高重要、低支持低支持四类关系人的特征，建立差异化应对的思维框架。'
+    }
+  },
+  {
+    id: 'm2-k2', level: 3, parent: 'm2', label: '差异化\n沟通策略',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '差异化沟通策略',
+      parent: '模块二：影响策略',
+      desc: '针对不同类型关系人匹配紧密协作、争取认同、保持告知、最低维护四种策略，实现精准影响。'
+    }
+  },
+  {
+    id: 'm2-k3', level: 3, parent: 'm2', label: '权力动态\n适配',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '权力动态适配',
+      parent: '模块二：影响策略',
+      desc: '基于不同依存关系，设计价值绑定、资源互补、信息交换等影响动作，让无职权者也能有效推动协作。'
+    }
+  },
+  {
+    id: 'm2-k4', level: 3, parent: 'm2', label: '沟通话术\n设计',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '沟通话术设计',
+      parent: '模块二：影响策略',
+      desc: '贴合关系人需求与权力位势的表达模板，将策略转化为可直接使用的沟通语言，降低关系摩擦。'
+    }
+  },
+  {
+    id: 'm3-k2', level: 3, parent: 'm3', label: '冲突案例\n复盘',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '跨部门冲突案例复盘',
+      parent: '模块三：冲突认知',
+      desc: '从利益与权力视角复盘跨部门冲突典型案例，理解化解冲突不等于消除矛盾，而是找到共赢点、避免权力对抗。'
+    }
+  },
+  {
+    id: 'm3-k3', level: 3, parent: 'm3', label: 'TKI\n冲突测评',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: 'TKI冲突模式测评',
+      parent: '模块三：冲突认知',
+      desc: '通过标准化测评识别自身主导冲突模式（竞争、协作、妥协、回避、迁就），了解不同模式的行为特征与适用边界。'
+    }
+  },
+  {
+    id: 'm3-k4', level: 3, parent: 'm3', label: '冲突类型\n策略匹配',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '冲突类型与策略匹配',
+      parent: '模块三：冲突认知',
+      desc: '建立资源冲突、目标分歧、权力博弈等不同冲突类型与TKI模式的对应关系，实现科学适配、精准应对。'
+    }
+  },
+  {
+    id: 'm4-k1', level: 3, parent: 'm4', label: '原则性谈判\n四步法',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '原则性谈判四步法',
+      parent: '模块四：冲突实战',
+      desc: '分开人与问题、聚焦利益而非立场、创造双赢选项、坚持客观标准，用结构化方法将对抗转化为协作。'
+    }
+  },
+  {
+    id: 'm4-k2', level: 3, parent: 'm4', label: '影响力\n七大原则',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '影响力七大原则',
+      parent: '模块四：冲突实战',
+      desc: '掌握互惠、承诺一致、社会认同、喜好、权威、稀缺、联盟七大原则的核心逻辑，在无职权场景下建立影响力。'
+    }
+  },
+  {
+    id: 'm4-k3', level: 3, parent: 'm4', label: '场景化\n话术设计',
+    radius: 0, color: C_KNOW,
+    data: {
+      title: '场景化话术设计',
+      parent: '模块四：冲突实战',
+      desc: '将影响力原则转化为预算分歧、日程冲突、资源争夺等真实场景中的实战表达，让原则可落地、可复用。'
+    }
+  }
+];
+
+const links = [
+  { source: 'course', target: 'm1' },
+  { source: 'course', target: 'm2' },
+  { source: 'course', target: 'm3' },
+  { source: 'course', target: 'm4' },
+  { source: 'm1', target: 'm1-k1' },
+  { source: 'm1', target: 'm1-k2' },
+  { source: 'm1', target: 'm1-k3' },
+  { source: 'm1', target: 'm1-k4' },
+  { source: 'm2', target: 'm2-k1' },
+  { source: 'm2', target: 'm2-k2' },
+  { source: 'm2', target: 'm2-k3' },
+  { source: 'm2', target: 'm2-k4' },
+  { source: 'm3', target: 'm3-k2' },
+  { source: 'm3', target: 'm3-k3' },
+  { source: 'm3', target: 'm3-k4' },
+  { source: 'm4', target: 'm4-k1' },
+  { source: 'm4', target: 'm4-k2' },
+  { source: 'm4', target: 'm4-k3' }
+];
+
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+let transform = { x: 0, y: 0, k: 1 };
+let hoveredNode = null;
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let dragStartTransform = { x: 0, y: 0 };
+let hasDragged = false;
+
+function resize() {
+  width = window.innerWidth;
+  height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+}
+
+function initPositions() {
+  const cx = width / 2;
+  const cy = height / 2 + 20;
+
+  const course = nodes.find(n => n.id === 'course');
+  course.radius = Math.min(56, width * 0.048);
+  course.x = cx;
+  course.y = cy;
+
+  const mNodes = nodes.filter(n => n.level === 2);
+  const mRadius = Math.min(46, width * 0.04);
+  mNodes.forEach(n => n.radius = mRadius);
+
+  const minGap = 40;
+  const minR2 = (2 * mRadius + minGap) / (2 * Math.sin(Math.PI / 4));
+  const preferredR2 = Math.min(width, height) * 0.22;
+  const r2 = Math.max(minR2, Math.min(preferredR2, 240));
+
+  mNodes.forEach((n, i) => {
+    const angle = (i / mNodes.length) * Math.PI * 2 - Math.PI / 2;
+    n.x = cx + Math.cos(angle) * r2;
+    n.y = cy + Math.sin(angle) * r2;
+  });
+
+  const kRadius = Math.min(32, width * 0.026);
+  nodes.filter(n => n.level === 3).forEach(n => n.radius = kRadius);
+
+  nodes.filter(n => n.level === 3).forEach(n => {
+    const parent = nodes.find(p => p.id === n.parent);
+    const siblings = nodes.filter(s => s.parent === n.parent);
+    const count = siblings.length;
+    const idx = siblings.indexOf(n);
+
+    const parentAngle = Math.atan2(parent.y - cy, parent.x - cx);
+    const spreadDeg = count === 5 ? 110 : 72;
+    const spread = Math.PI * spreadDeg / 180;
+
+    const kMinGap = 18;
+    let minR3;
+    if (count <= 1) {
+      minR3 = 90;
+    } else {
+      const halfStep = spread / (2 * (count - 1));
+      minR3 = (2 * kRadius + kMinGap) / (2 * Math.sin(halfStep));
+    }
+    const preferredR3 = Math.min(width, height) * 0.14;
+    const r3 = Math.max(minR3, Math.min(preferredR3, 150));
+
+    const startAngle = parentAngle - spread / 2;
+    const angle = startAngle + (count > 1 ? (idx / (count - 1)) * spread : 0);
+    n.x = parent.x + Math.cos(angle) * r3;
+    n.y = parent.y + Math.sin(angle) * r3;
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, width, height);
+  ctx.save();
+  ctx.translate(transform.x, transform.y);
+  ctx.scale(transform.k, transform.k);
+
+  links.forEach(l => {
+    const a = nodes.find(n => n.id === l.source);
+    const b = nodes.find(n => n.id === l.target);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.setLineDash([5, 6]);
+    ctx.strokeStyle = 'rgba(160, 160, 160, 0.5)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  [3, 2, 1].forEach(level => {
+    nodes.filter(n => n.level === level).forEach(n => {
+      if (n === hoveredNode) {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius + 10, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(200, 210, 225, 0.65)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y + 3, n.radius, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      ctx.fillStyle = n.color;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = n === hoveredNode ? 2.5 : 1.8;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const fontSize = n.level === 1 ? 14 : (n.level === 2 ? 11 : 10);
+      ctx.font = (n === hoveredNode ? 'bold ' : '') + fontSize + 'px "Microsoft YaHei", sans-serif';
+      const lines = n.label.split('\n');
+      const lineHeight = fontSize + 2;
+      const startY = n.y - (lines.length - 1) * lineHeight / 2;
+      lines.forEach((line, i) => {
+        ctx.fillText(line, n.x, startY + i * lineHeight);
+      });
+
+      if (n.level === 2 && n.solo) {
+        const bx = n.x + n.radius * 0.68;
+        const by = n.y - n.radius * 0.68;
+        ctx.beginPath();
+        ctx.arc(bx, by, 11, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx, by, 11, 0, Math.PI * 2);
+        ctx.strokeStyle = n.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = n.color;
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillText('0.5', bx, by + 1);
+      }
+    });
+  });
+
+  ctx.restore();
+}
+
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left - transform.x) / transform.k,
+    y: (e.clientY - rect.top - transform.y) / transform.k
+  };
+}
+
+function findNode(pos) {
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const dx = pos.x - n.x, dy = pos.y - n.y;
+    if (dx * dx + dy * dy <= n.radius * n.radius) return n;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+  isDragging = true;
+  hasDragged = false;
+  dragStart.x = e.clientX;
+  dragStart.y = e.clientY;
+  dragStartTransform.x = transform.x;
+  dragStartTransform.y = transform.y;
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (isDragging) {
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      hasDragged = true;
+      transform.x = dragStartTransform.x + dx;
+      transform.y = dragStartTransform.y + dy;
+      canvas.style.cursor = 'grabbing';
+      draw();
+      return;
+    }
+  }
+
+  const pos = getMousePos(e);
+  const node = findNode(pos);
+  hoveredNode = node;
+  canvas.style.cursor = isDragging ? 'grabbing' : (node ? 'pointer' : 'default');
+
+  const tooltip = document.getElementById('tooltip');
+  if (node) {
+    tooltip.textContent = node.level === 1 ? '点击查看完整课程详情' :
+      node.level === 2 ? (node.solo ? '点击查看模块详情 · 可单独开设0.5天' : '点击查看模块详情') :
+      '点击查看知识点详情';
+    tooltip.style.left = (e.clientX + 10) + 'px';
+    tooltip.style.top = (e.clientY - 28) + 'px';
+    tooltip.classList.add('active');
+  } else {
+    tooltip.classList.remove('active');
+  }
+  draw();
+});
+
+canvas.addEventListener('mouseup', e => {
+  isDragging = false;
+  canvas.style.cursor = 'default';
+  if (!hasDragged) {
+    const pos = getMousePos(e);
+    const node = findNode(pos);
+    if (node) openModal(node);
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const zoomFactor = e.deltaY > 0 ? 0.92 : 1.08;
+  const newK = Math.max(0.3, Math.min(3, transform.k * zoomFactor));
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  transform.x = mx - (mx - transform.x) * (newK / transform.k);
+  transform.y = my - (my - transform.y) * (newK / transform.k);
+  transform.k = newK;
+  draw();
+}, { passive: false });
+
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    const pos = getMousePos(t);
+    const node = findNode(pos);
+    if (node) openModal(node);
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx*dx + dy*dy);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 2 && lastTouchDist > 0) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const zoomFactor = dist / lastTouchDist;
+    const newK = Math.max(0.3, Math.min(3, transform.k * zoomFactor));
+    const cx = width / 2, cy = height / 2;
+    transform.x = cx - (cx - transform.x) * (newK / transform.k);
+    transform.y = cy - (cy - transform.y) * (newK / transform.k);
+    transform.k = newK;
+    lastTouchDist = dist;
+    draw();
+  }
+}, { passive: false });
+
+function openModal(node) {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  const card = document.getElementById('modal-card');
+
+  let html = '';
+  if (node.level === 1) {
+    const d = node.data;
+    card.className = 'modal-card card-level1';
+    html = `
+      <div class="card-header">
+        <h2>${d.title}</h2>
+        <span class="duration-tag">${d.duration}</span>
+      </div>
+      <div class="card-body">
+        <div class="intro-text">${d.intro}</div>
+        <div class="card-section">
+          <h3>课程目的</h3>
+          <ul>${d.purposes.map(p => `<li>${p}</li>`).join('')}</ul>
+        </div>
+        <div class="card-section">
+          <h3>学员收益</h3>
+          <ul>${d.benefits.map(b => `<li>${b}</li>`).join('')}</ul>
+        </div>
+        <div class="card-section" style="grid-column:1/-1;">
+          <h3>适合人群</h3>
+          <p>${d.audience}</p>
+        </div>
+      </div>
+    `;
+  } else if (node.level === 2) {
+    const d = node.data;
+    const headerClass = node.solo ? 'green' : 'gray';
+    card.className = 'modal-card card-level2';
+    html = `
+      <div class="card-header ${headerClass}">
+        <h2>${d.title}</h2>
+        ${node.solo ? `<span class="halfday-tag">0.5天</span><span class="solo-badge">可单独开设</span>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="objective"><strong>核心目标：</strong>${d.objective}</div>
+        <div class="card-section">
+          <h3>模块亮点</h3>
+          <ul>${d.highlights.map(h => `<li>${h}</li>`).join('')}</ul>
+        </div>
+        <div class="knowledge-preview">
+          <h4>涵盖知识点</h4>
+          ${d.children.map(c => `<div class="kp-item"><div class="kp-dot"></div><span>${c}</span></div>`).join('')}
+        </div>
+        ${node.solo ? `<div class="solo-highlight">此模块可独立开设为半日工作坊，内容完整、工具可立即落地。</div>` : ''}
+      </div>
+    `;
+  } else {
+    const d = node.data;
+    card.className = 'modal-card card-level3';
+    html = `
+      <div class="card-header">
+        <h2>${d.title}</h2>
+        <span class="parent-tag">${d.parent}</span>
+      </div>
+      <div class="card-body">
+        <p>${d.desc}</p>
+      </div>
+    `;
+  }
+
+  content.innerHTML = html;
+  overlay.classList.add('active');
+}
+
+function openInstructorModal() {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  const card = document.getElementById('modal-card');
+  card.className = 'modal-card card-instructor';
+  content.innerHTML = `
+    <div class="card-header">
+      <h2>讲师简介</h2>
+    </div>
+    <div class="instructor-body">
+      <div class="instructor-left">
+        <div class="instructor-avatar"><img src="instructor2.jpg" alt="康杰老师"></div>
+        <div class="instructor-name">康杰老师</div>
+        <div class="instructor-en-name">Arry Kang</div>
+        <div class="instructor-tags">
+          <span class="instructor-tag">CMF专家级引导师</span>
+          <span class="instructor-tag">团队教练</span>
+          <span class="instructor-tag">行动学习教练</span>
+          <span class="instructor-tag">变革管理与绩效改进咨询顾问</span>
+        </div>
+      </div>
+      <div class="instructor-right">
+        <div class="instructor-section">
+          <h4>专业背景</h4>
+          <p>工科背景的女性领导者，二十年业务管理与咨询顾问经验。职业生涯始于新闻行业，多年职业记者经历锻炼出缜密的系统思考及逻辑思维能力。曾担任媒体集团销售VP、广告公司CEO，带领团队服务过足球世界杯、奥运会、F1等重大赛事。</p>
+        </div>
+        <div class="instructor-section">
+          <h4>核心优势</h4>
+          <p>深刻理解不同行业客户需求，擅长将引导技术与业务场景深度融合，围绕真实业务情境量身定制解决方案，平衡"人"与"事"的关系，推动战略落地和组织发展。</p>
+        </div>
+        <div class="instructor-section">
+          <h4>服务领域</h4>
+          <p>汽车、快消、零售、制造、医药、互联网、奢侈品、金融等行业；专注战略规划与落地、价值观解码、愿景共创、销售团队激励、组织变革等议题。</p>
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.classList.add('active');
+}
+
+function closeModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+function resetView() {
+  transform = { x: 0, y: 0, k: 1 };
+  initPositions();
+  draw();
+}
+
+function zoomIn() {
+  const newK = Math.min(3, transform.k * 1.2);
+  const cx = width / 2, cy = height / 2;
+  transform.x = cx - (cx - transform.x) * (newK / transform.k);
+  transform.y = cy - (cy - transform.y) * (newK / transform.k);
+  transform.k = newK;
+  draw();
+}
+
+function zoomOut() {
+  const newK = Math.max(0.3, transform.k / 1.2);
+  const cx = width / 2, cy = height / 2;
+  transform.x = cx - (cx - transform.x) * (newK / transform.k);
+  transform.y = cy - (cy - transform.y) * (newK / transform.k);
+  transform.k = newK;
+  draw();
+}
+
+window.addEventListener('resize', () => {
+  resize();
+  initPositions();
+  draw();
+});
+resize();
+initPositions();
+draw();
+</script>
+</body>
+</html>
